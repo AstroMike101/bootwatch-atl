@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { mapsLoader } from '@/lib/maps'
-import { fetchRecentReports, timeAgo, formatFee } from '@/lib/data'
-import type { Report } from '@/types'
+import { fetchRecentReports, fetchLotById, fetchReportsByLot, timeAgo, formatFee, riskLabel } from '@/lib/data'
+import type { Report, Lot } from '@/types'
 
 const ATLANTA = { lat: 33.749, lng: -84.388 }
 
@@ -13,12 +13,17 @@ export default function MapView() {
   const markersRef = useRef<google.maps.Marker[]>([])
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
   const heatmapRef = useRef<google.maps.visualization.HeatmapLayer | null>(null)
+
   const [reports, setReports] = useState<Report[]>([])
-  const [selected, setSelected] = useState<Report | null>(null)
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null)
+  const [selectedLot, setSelectedLot] = useState<Lot | null>(null)
+  const [lotReports, setLotReports] = useState<Report[]>([])
+  const [lotLoading, setLotLoading] = useState(false)
   const [locating, setLocating] = useState(false)
   const [filter, setFilter] = useState<'all' | 'boot' | 'warning'>('all')
   const [mapReady, setMapReady] = useState(false)
   const [heatmapOn, setHeatmapOn] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(false)
 
   const placeUserMarker = (map: google.maps.Map, lat: number, lng: number) => {
     if (userMarkerRef.current) userMarkerRef.current.setMap(null)
@@ -49,6 +54,24 @@ export default function MapView() {
     )
   }, [])
 
+  const handlePinClick = useCallback(async (report: Report) => {
+    setSelectedReport(report)
+    setPanelOpen(true)
+    setSelectedLot(null)
+    setLotReports([])
+
+    if (report.lot_id) {
+      setLotLoading(true)
+      const [lot, reps] = await Promise.all([
+        fetchLotById(report.lot_id),
+        fetchReportsByLot(report.lot_id),
+      ])
+      setSelectedLot(lot)
+      setLotReports(reps)
+      setLotLoading(false)
+    }
+  }, [])
+
   const placeMarkers = useCallback((data: Report[]) => {
     const map = mapInstance.current
     if (!map) return
@@ -61,15 +84,18 @@ export default function MapView() {
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 12,
-          fillColor: report.type === 'boot' ? '#E24B4A' : '#BA7517',
+          fillColor: report.type === 'boot' ? '#E24B4A' : report.type === 'warning' ? '#BA7517' : '#185FA5',
           fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2.5,
         },
         title: report.lot_name ?? report.address,
       })
-      marker.addListener('click', () => setSelected(report))
+      marker.addListener('click', () => {
+        mapInstance.current?.panTo({ lat: report.lat, lng: report.lng })
+        handlePinClick(report)
+      })
       markersRef.current.push(marker)
     })
-  }, [filter])
+  }, [filter, handlePinClick])
 
   const buildHeatmap = useCallback((data: Report[]) => {
     const map = mapInstance.current
@@ -93,7 +119,7 @@ export default function MapView() {
       mapInstance.current = map
       setMapReady(true)
       goToUserLocation(map)
-      fetchRecentReports(150).then(data => {
+      fetchRecentReports(200).then(data => {
         setReports(data)
         placeMarkers(data)
         buildHeatmap(data)
@@ -109,9 +135,20 @@ export default function MapView() {
     markersRef.current.forEach(m => m.setOpacity(heatmapOn ? 0.2 : 1))
   }, [heatmapOn])
 
+  const closePanel = () => {
+    setPanelOpen(false)
+    setSelectedReport(null)
+    setSelectedLot(null)
+    setLotReports([])
+  }
+
+  const risk = selectedLot ? riskLabel(selectedLot.risk_score) : null
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex' }}>
+
+      {/* Map */}
+      <div ref={mapRef} style={{ flex: 1, height: '100%' }} />
 
       {!mapReady && (
         <div style={{ position: 'absolute', inset: 0, background: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#9ca3af' }}>
@@ -121,15 +158,15 @@ export default function MapView() {
 
       {mapReady && (
         <>
-          {/* Filter pills — top left */}
-          <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
+          {/* Filter pills */}
+          <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6, zIndex: 10 }}>
             {(['all', 'boot', 'warning'] as const).map(f => (
               <button key={f} onPointerUp={() => setFilter(f)} style={{
                 fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 99,
                 border: 'none', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
                 background: filter === f ? (f === 'boot' ? '#E24B4A' : f === 'warning' ? '#BA7517' : '#1f2937') : '#fff',
                 color: filter === f ? '#fff' : '#6b7280',
-                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
               }}>
                 {f === 'all' ? 'All' : f === 'boot' ? 'Boots' : 'Warnings'}
               </button>
@@ -139,17 +176,17 @@ export default function MapView() {
               border: 'none', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
               background: heatmapOn ? '#7C3AED' : '#fff',
               color: heatmapOn ? '#fff' : '#6b7280',
-              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
             }}>
               🔥 Heatmap
             </button>
           </div>
 
-          {/* Legend — top right */}
+          {/* Legend */}
           <div style={{
-            position: 'absolute', top: 12, right: 12, background: '#fff', borderRadius: 12,
-            padding: '8px 12px', fontSize: 12, color: '#6b7280',
-            display: 'flex', flexDirection: 'column', gap: 6,
+            position: 'absolute', top: 12, right: 12, zIndex: 10,
+            background: '#fff', borderRadius: 12, padding: '8px 12px',
+            fontSize: 12, color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 6,
             boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -160,16 +197,16 @@ export default function MapView() {
             </span>
           </div>
 
-          {/* Locate me — bottom right */}
+          {/* Locate me */}
           <button
             onPointerUp={() => mapInstance.current && goToUserLocation(mapInstance.current)}
             style={{
-              position: 'absolute', bottom: 20, right: 16,
+              position: 'absolute', bottom: 20, right: 16, zIndex: 10,
               width: 50, height: 50, borderRadius: '50%',
               background: '#fff', border: '1px solid #e5e7eb',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
             }}
           >
             {locating
@@ -186,39 +223,166 @@ export default function MapView() {
               )}
           </button>
 
-          {/* Selected pin popup */}
-          {selected && (
+          {/* ── Lot / Report detail panel ── */}
+          {panelOpen && selectedReport && (
             <div style={{
-              position: 'absolute', bottom: 20, left: 12, right: 72,
-              background: '#fff', borderRadius: 16, padding: 14,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              position: 'absolute',
+              // On mobile: bottom sheet. On desktop: right side panel
+              bottom: 0, right: 0,
+              width: 'min(100%, 400px)',
+              maxHeight: '75%',
+              background: '#fff',
+              borderRadius: '20px 20px 0 0',
+              boxShadow: '0 -4px 24px rgba(0,0,0,0.13)',
+              display: 'flex', flexDirection: 'column',
+              zIndex: 20,
+              animation: 'slideUp 0.22s ease-out',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 99,
-                  background: selected.type === 'boot' ? '#FCEBEB' : '#FAEEDA',
-                  color: selected.type === 'boot' ? '#791F1F' : '#633806',
-                }}>
-                  {selected.type === 'boot' ? '🔒 Boot' : selected.type === 'warning' ? '⚠️ Warning' : '🚗 Truck'}
+              {/* Handle + close */}
+              <div style={{ padding: '12px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 99, background: '#e5e7eb', margin: '0 auto' }} />
+              </div>
+              <div style={{ padding: '0 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>
+                  {selectedLot?.name ?? selectedReport.lot_name ?? 'Parking lot'}
                 </span>
-                <button onPointerUp={() => setSelected(null)} style={{ border: 'none', background: 'none', color: '#9ca3af', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 0 }}>×</button>
+                <button onPointerUp={closePanel} style={{ border: 'none', background: 'none', color: '#9ca3af', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 0 }}>×</button>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{selected.lot_name ?? selected.address}</div>
-              {selected.lot_name && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{selected.address}</div>}
-              <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 12, color: '#6b7280', flexWrap: 'wrap' }}>
-                {selected.company_name && <span>By <strong style={{ color: '#374151' }}>{selected.company_name}</strong></span>}
-                {selected.fee && <span>Fee: <strong style={{ color: '#374151' }}>{formatFee(selected.fee)}</strong></span>}
-                <span>{timeAgo(selected.created_at)}</span>
+
+              <div style={{ overflowY: 'auto', flex: 1, padding: '0 16px 24px' }}>
+
+                {/* Lot risk score */}
+                {selectedLot && risk && (
+                  <div style={{ background: risk.bg, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: risk.color }}>
+                          {risk.label} · Score {selectedLot.risk_score}/100
+                        </div>
+                        <div style={{ fontSize: 12, color: risk.color, opacity: 0.8, marginTop: 2 }}>
+                          Based on report history and recency
+                        </div>
+                      </div>
+                    </div>
+                    {/* Score bar */}
+                    <div style={{ height: 6, background: 'rgba(0,0,0,0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${selectedLot.risk_score}%`, background: risk.color, borderRadius: 99, transition: 'width 0.4s ease' }} />
+                    </div>
+
+                    {/* Lot stats */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
+                      {[
+                        { label: 'Total boots', value: selectedLot.total_boots },
+                        { label: 'Warnings', value: selectedLot.total_warnings },
+                        { label: 'Avg fee', value: formatFee(selectedLot.avg_fee) },
+                      ].map(({ label, value }) => (
+                        <div key={label} style={{ background: 'rgba(255,255,255,0.6)', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: risk.color }}>{value}</div>
+                          <div style={{ fontSize: 10, color: risk.color, opacity: 0.8 }}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {selectedLot.company_name && (
+                      <div style={{ marginTop: 10, fontSize: 12, color: risk.color }}>
+                        Enforced by <strong>{selectedLot.company_name}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* This specific report */}
+                <div style={{ background: '#f9fafb', borderRadius: 14, padding: 14, marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 99,
+                      background: selectedReport.type === 'boot' ? '#FCEBEB' : '#FAEEDA',
+                      color: selectedReport.type === 'boot' ? '#791F1F' : '#633806',
+                    }}>
+                      {selectedReport.type === 'boot' ? '🔒 Boot' : selectedReport.type === 'warning' ? '⚠️ Warning' : '🚗 Truck'}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#9ca3af' }}>{timeAgo(selectedReport.created_at)}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#6b7280' }}>{selectedReport.address}</div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 12, color: '#6b7280', flexWrap: 'wrap' }}>
+                    {selectedReport.company_name && <span>By <strong style={{ color: '#374151' }}>{selectedReport.company_name}</strong></span>}
+                    {selectedReport.fee && <span>Fee: <strong style={{ color: '#374151' }}>{formatFee(selectedReport.fee)}</strong></span>}
+                  </div>
+                  {selectedReport.notes && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280', fontStyle: 'italic', background: '#fff', borderRadius: 8, padding: '6px 10px' }}>
+                      "{selectedReport.notes}"
+                    </div>
+                  )}
+
+                  {/* Photos */}
+                  {selectedReport.photo_urls && selectedReport.photo_urls.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      {selectedReport.photo_urls.map((url, i) => (
+                        <img key={i} src={url} alt="Report photo" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, cursor: 'pointer' }}
+                          onClick={() => window.open(url, '_blank')} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Loading lot */}
+                {lotLoading && (
+                  <div style={{ textAlign: 'center', padding: 20, fontSize: 13, color: '#9ca3af' }}>Loading lot history…</div>
+                )}
+
+                {/* Other recent reports at this lot */}
+                {!lotLoading && lotReports.length > 1 && (
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 10 }}>
+                      All reports at this lot
+                      <span style={{ fontSize: 12, fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>({lotReports.length} total)</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {lotReports.filter(r => r.id !== selectedReport.id).slice(0, 5).map(r => (
+                        <div key={r.id} style={{ background: '#f9fafb', borderRadius: 10, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                              background: r.type === 'boot' ? '#FCEBEB' : '#FAEEDA',
+                              color: r.type === 'boot' ? '#791F1F' : '#633806',
+                            }}>
+                              {r.type === 'boot' ? '🔒 Boot' : r.type === 'warning' ? '⚠️ Warning' : '🚗 Truck'}
+                            </span>
+                            {r.fee && <span style={{ fontSize: 12, color: '#374151', marginLeft: 8 }}>{formatFee(r.fee)}</span>}
+                            {r.notes && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>"{r.notes}"</div>}
+                          </div>
+                          <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>{timeAgo(r.created_at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* No lot data */}
+                {!lotLoading && !selectedLot && (
+                  <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: '#9ca3af' }}>
+                    No lot history available yet
+                  </div>
+                )}
               </div>
-              {selected.notes && (
-                <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>"{selected.notes}"</div>
-              )}
             </div>
           )}
         </>
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @media (min-width: 768px) {
+          .lot-panel {
+            border-radius: 20px !important;
+            top: 12px !important;
+            bottom: 12px !important;
+            right: 12px !important;
+            max-height: calc(100% - 24px) !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

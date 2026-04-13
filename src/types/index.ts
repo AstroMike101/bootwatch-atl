@@ -7,11 +7,30 @@ export interface Report {
   address: string
   lat: number
   lng: number
+  lot_id: string | null
   company_id: string | null
   company_name: string | null
   fee: number | null
   notes: string | null
+  photo_urls: string[]
   ip_address: string | null
+  created_at: string
+}
+
+export interface Lot {
+  id: string
+  name: string | null
+  address: string
+  lat: number
+  lng: number
+  company_id: string | null
+  company_name: string | null
+  total_boots: number
+  total_warnings: number
+  total_reports: number
+  avg_fee: number | null
+  last_reported_at: string | null
+  risk_score: number
   created_at: string
 }
 
@@ -40,4 +59,5 @@ export interface NewReport {
   company_name?: string
   fee?: number
   notes?: string
+  photo_urls?: string[]
 }

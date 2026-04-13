@@ -17,7 +17,7 @@ export default function Home() {
       {/* Header */}
       <header style={{
         display: 'flex', alignItems: 'center', padding: '0 16px',
-        height: 48, borderBottom: '1px solid #f3f4f6', background: '#fff',
+        height: 52, borderBottom: '1px solid #f3f4f6', background: '#fff',
         flexShrink: 0, zIndex: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -29,7 +29,7 @@ export default function Home() {
             onClick={() => setTab('report')}
             style={{
               marginLeft: 'auto', fontSize: 13, fontWeight: 600,
-              padding: '6px 14px', background: '#E24B4A', color: '#fff',
+              padding: '7px 16px', background: '#E24B4A', color: '#fff',
               border: 'none', borderRadius: 10, cursor: 'pointer',
             }}
           >
@@ -40,16 +40,22 @@ export default function Home() {
 
       {/* Views */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {/* Map — always mounted so it doesn't reload */}
+        {/* Map — always mounted so it doesn't reload on tab switch */}
         <div style={{ position: 'absolute', inset: 0, display: tab === 'map' ? 'block' : 'none' }}>
           <MapView />
         </div>
-        <div style={{ position: 'absolute', inset: 0, display: tab === 'reports' ? 'flex' : 'none', flexDirection: 'column' }}>
+
+        {/* Reports — needs full height so its internal scroll works */}
+        <div style={{ position: 'absolute', inset: 0, display: tab === 'reports' ? 'block' : 'none' }}>
           <RecentReportsView />
         </div>
+
+        {/* Companies */}
         <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: tab === 'companies' ? 'block' : 'none' }}>
           <CompaniesView />
         </div>
+
+        {/* Report form */}
         <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: tab === 'report' ? 'block' : 'none' }}>
           <ReportView onDone={() => setTab('map')} onCancel={() => setTab('map')} />
         </div>
