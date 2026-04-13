@@ -28,9 +28,30 @@ export async function fetchReportsNear(lat: number, lng: number, radiusDeg = 0.1
   return data ?? []
 }
 
+// Fetch client IP via a free public API
+async function getClientIp(): Promise<string | null> {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json')
+    const data = await res.json()
+    return data.ip ?? null
+  } catch {
+    return null
+  }
+}
+
 export async function submitReport(report: NewReport): Promise<void> {
-  const { error } = await supabase.from('reports').insert(report)
-  if (error) throw error
+  const ip_address = await getClientIp()
+  const { error } = await supabase.from('reports').insert({ ...report, ip_address })
+  if (error) {
+    // Surface the DB rate limit message cleanly
+    if (error.message?.includes('Rate limit exceeded')) {
+      throw new Error('Rate limit exceeded. You can submit up to 3 reports per hour in the same area.')
+    }
+    if (error.message?.includes('Duplicate report')) {
+      throw new Error('Duplicate report. This location was already reported recently.')
+    }
+    throw error
+  }
 }
 
 export async function fetchCompanies(): Promise<Company[]> {

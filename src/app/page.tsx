@@ -4,9 +4,10 @@ import { useState } from 'react'
 import MapView from '@/components/MapView'
 import CompaniesView from '@/components/CompaniesView'
 import ReportView from '@/components/ReportView'
+import RecentReportsView from '@/components/RecentReportsView'
 import BottomNav from '@/components/ui/BottomNav'
 
-export type Tab = 'map' | 'companies' | 'report'
+export type Tab = 'map' | 'reports' | 'companies' | 'report'
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('map')
@@ -37,10 +38,14 @@ export default function Home() {
         )}
       </header>
 
-      {/* Views — all mounted so map doesn't reload on tab switch */}
+      {/* Views */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {/* Map — always mounted so it doesn't reload */}
         <div style={{ position: 'absolute', inset: 0, display: tab === 'map' ? 'block' : 'none' }}>
           <MapView />
+        </div>
+        <div style={{ position: 'absolute', inset: 0, display: tab === 'reports' ? 'flex' : 'none', flexDirection: 'column' }}>
+          <RecentReportsView />
         </div>
         <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: tab === 'companies' ? 'block' : 'none' }}>
           <CompaniesView />

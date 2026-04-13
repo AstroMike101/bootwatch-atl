@@ -11,6 +11,7 @@ export interface Report {
   company_name: string | null
   fee: number | null
   notes: string | null
+  ip_address: string | null
   created_at: string
 }
 
