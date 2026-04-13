@@ -23,58 +23,8 @@ Crowdsourced boot and parking enforcement map for Atlanta. See where cars are be
 - **Google Maps** — map, pins, heatmap, address autocomplete
 - **Vercel** — hosting
 
----
 
-## Setup
 
-### 1. Install dependencies
-```bash
-npm install
-```
-
-### 2. Environment variables
-Create `.env.local` and add:
-```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_GOOGLE_MAPS_KEY=your_google_maps_key
-```
-
-Google Maps key needs these APIs enabled:
-- Maps JavaScript API
-- Places API
-- Geocoding API
-
-### 3. Database
-Run these SQL files in order in the Supabase SQL Editor:
-1. `supabase-setup.sql` — creates tables, indexes, and RLS policies
-2. `lots-migration.sql` — adds lot profiles and risk score calculation
-3. `spam-protection.sql` — rate limiting triggers
-4. `photos-migration.sql` — adds photo storage support
-5. `real-seed-data.sql` — seeds real Atlanta companies and known hotspot lots
-
-### 4. Storage bucket
-In Supabase Dashboard → Storage → New bucket:
-- Name: `report-photos`
-- Public: on
-
-### 5. Run locally
-```bash
-npm run dev
-```
-
-> Note: geolocation requires HTTPS. The locate button won't work on a local IP — use localhost or deploy to Vercel to test on mobile.
-
----
-
-## Deploy
-
-1. Push to GitHub
-2. Import to [Vercel](https://vercel.com)
-3. Add the three environment variables in Vercel's dashboard
-4. Deploy — you get an HTTPS URL instantly, geolocation works
-
----
 
 ## Data
 
