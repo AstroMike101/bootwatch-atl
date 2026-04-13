@@ -16,11 +16,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'ATL BootWatch',
     description: 'See where cars are being booted in Atlanta. Check any lot before you park.',
-    url: 'https://www.atlboot.watch', // 👈 replace with your real URL
+    url: 'https://atlboot.watch', // 
     siteName: 'ATL BootWatch',
     images: [
       {
-        url: 'https://your-actual-url.vercel.app/og-image.png', // 👈 replace
+        url: 'https://atlboot.watch/og-image.png', 
         width: 1200,
         height: 630,
         alt: 'ATL BootWatch — Atlanta boot map',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'ATL BootWatch',
     description: 'See where cars are being booted in Atlanta. Check any lot before you park.',
-    images: ['https://icon-512.png'], // 👈 replace
+    images: ['https://icon-512.png'], // 
   },
 }
 
