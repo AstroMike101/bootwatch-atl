@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  searchLots, fetchLotsNear, fetchHighRiskLots, fetchLots,
-  fetchReportsByLot, computeNeighborhoodStats,
+  searchLots, fetchLotsNear, fetchHighRiskLots,
+  fetchReportsByLot, fetchRecentReports, computeNeighborhoodStats,
   riskLabel, formatFee, timeAgo,
 } from '@/lib/data'
 import { mapsLoader } from '@/lib/maps'
@@ -207,15 +207,15 @@ function LotDetailSheet({ lot, reports, onClose }: { lot: Lot; reports: Report[]
 
 // ── Neighborhood leaderboard ──────────────────────────────────────────────────
 
-function NeighborhoodLeaderboard({ lots }: { lots: Lot[] }) {
-  const stats = computeNeighborhoodStats(lots)
+function NeighborhoodLeaderboard({ reports }: { reports: Report[] }) {
+  const stats = computeNeighborhoodStats(reports)
   if (stats.length === 0) return null
   const maxBoots = Math.max(...stats.map(s => s.boots), 1)
 
   return (
     <div>
       <div style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 4 }}>Neighborhood risk</div>
-      <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>Boot activity by area in the last 72 hours</div>
+      <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>Boot reports in the last 72 hours · {reports.length} total</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {stats.map((s, i) => {
           const { color, bg, emoji } = riskLabel(s.riskScore)
@@ -273,7 +273,7 @@ export default function SafetySearchView() {
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null)
   const [lotReports, setLotReports] = useState<Report[]>([])
   const [highRisk, setHighRisk] = useState<Lot[]>([])
-  const [allLots, setAllLots] = useState<Lot[]>([])
+  const [recentReports, setRecentReports] = useState<Report[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const autocomplete = useRef<google.maps.places.Autocomplete | null>(null)
@@ -282,7 +282,7 @@ export default function SafetySearchView() {
 
   useEffect(() => {
     fetchHighRiskLots(8).then(setHighRisk).catch(() => {})
-    fetchLots().then(setAllLots).catch(() => {})
+    fetchRecentReports(500).then(setRecentReports).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -412,7 +412,7 @@ export default function SafetySearchView() {
               </div>
             )}
 
-            <NeighborhoodLeaderboard lots={allLots} />
+            <NeighborhoodLeaderboard reports={recentReports} />
           </div>
 
           {/* Desktop side panel */}

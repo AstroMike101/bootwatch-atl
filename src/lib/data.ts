@@ -119,30 +119,36 @@ export function classifyNeighborhood(lat: number, lng: number): string {
   return 'Other Atlanta'
 }
 
-export function computeNeighborhoodStats(lots: Lot[]): NeighborhoodStats[] {
-  const map = new Map<string, { boots: number; warnings: number; fees: number[]; lots: Lot[] }>()
+// Compute neighborhood stats from recent reports (72h window)
+// Takes reports array so the leaderboard reflects the same time window as the map
+export function computeNeighborhoodStats(reports: Report[]): NeighborhoodStats[] {
+  const map = new Map<string, { boots: number; warnings: number; fees: number[]; addresses: string[] }>()
 
-  for (const lot of lots) {
-    const hood = classifyNeighborhood(Number(lot.lat), Number(lot.lng))
-    if (!map.has(hood)) map.set(hood, { boots: 0, warnings: 0, fees: [], lots: [] })
+  for (const r of reports) {
+    const hood = classifyNeighborhood(Number(r.lat), Number(r.lng))
+    if (!map.has(hood)) map.set(hood, { boots: 0, warnings: 0, fees: [], addresses: [] })
     const entry = map.get(hood)!
-    entry.boots += lot.total_boots
-    entry.warnings += lot.total_warnings
-    entry.lots.push(lot)
-    if (lot.avg_fee) entry.fees.push(lot.avg_fee)
+    if (r.type === 'boot') entry.boots++
+    if (r.type === 'warning') entry.warnings++
+    if (r.fee) entry.fees.push(r.fee)
+    const label = r.lot_name ?? r.address
+    if (!entry.addresses.includes(label)) entry.addresses.push(label)
   }
 
   const stats: NeighborhoodStats[] = []
   map.forEach((val, name) => {
-    const topLot = val.lots.sort((a, b) => b.risk_score - a.risk_score)[0]
-    const avgRisk = Math.round(val.lots.reduce((s, l) => s + l.risk_score, 0) / val.lots.length)
+    // Pick the most mentioned address as the hotspot
+    const topLot = val.addresses[0] ?? null
+    // Risk score: simple ratio of boots to total activity, scaled 0-100
+    const total = val.boots + val.warnings
+    const riskScore = total > 0 ? Math.min(Math.round((val.boots / total) * 100), 100) : 0
     stats.push({
       name,
       boots: val.boots,
       warnings: val.warnings,
       avgFee: val.fees.length ? Math.round(val.fees.reduce((a, b) => a + b, 0) / val.fees.length) : null,
-      topLot: topLot?.name ?? topLot?.address ?? null,
-      riskScore: avgRisk,
+      topLot,
+      riskScore,
     })
   })
 
