@@ -1,15 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchCompanies, fetchRecentReports, timeAgo, formatFee } from '@/lib/data'
 import type { Company, Report } from '@/types'
-
-const SEED: Company[] = [
-  { id: '1', name: 'ATL Boot Co', initials: 'AB', type: 'Private enforcement', phone: null, website: null, avg_fee: 150, total_boots: 247, total_complaints: 89, rating: 1.4, legal_flags: 3, tags: ['24/7', 'High volume', 'Fee disputes'], created_at: '' },
-  { id: '2', name: 'Parking Vision LLC', initials: 'PV', type: 'Lot management', phone: null, website: null, avg_fee: 125, total_boots: 134, total_complaints: 41, rating: 2.1, legal_flags: 1, tags: ['Midtown', 'Buckhead'], created_at: '' },
-  { id: '3', name: 'City Parking Inc', initials: 'CP', type: 'City contracted', phone: null, website: null, avg_fee: 100, total_boots: 88, total_complaints: 18, rating: 3.2, legal_flags: 0, tags: ['City contract', 'More lenient'], created_at: '' },
-  { id: '4', name: 'Premier Parking Enforcement', initials: 'PP', type: 'Private enforcement', phone: null, website: null, avg_fee: 175, total_boots: 196, total_complaints: 72, rating: 1.8, legal_flags: 2, tags: ['Buckhead', 'High fee', 'Aggressive'], created_at: '' },
-]
 
 function riskColor(flags: number, boots: number) {
   if (flags >= 2 || boots > 200) return { bg: '#FCEBEB', text: '#791F1F', label: 'High risk' }
@@ -42,13 +35,13 @@ function Stars({ rating }: { rating: number | null }) {
   )
 }
 
-// ── Company detail view ──────────────────────────────────────────────────────
+// ── Company detail ────────────────────────────────────────────────────────────
 
 function CompanyDetail({ co, onBack, allReports }: { co: Company; onBack: () => void; allReports: Report[] }) {
   const risk = riskColor(co.legal_flags, co.total_boots)
-  const companyReports = allReports.filter(r =>
-    r.company_name?.toLowerCase() === co.name.toLowerCase()
-  ).slice(0, 20)
+  const companyReports = allReports
+    .filter(r => r.company_name?.toLowerCase() === co.name.toLowerCase())
+    .slice(0, 20)
 
   const disputeSteps = [
     'Take photos of ALL signage (or lack of it) before paying.',
@@ -59,88 +52,70 @@ function CompanyDetail({ co, onBack, allReports }: { co: Company; onBack: () => 
   ]
 
   return (
-    <div style={{ padding: '16px 16px 40px', maxWidth: 480, margin: '0 auto' }}>
-      {/* Back */}
-      <button onClick={onBack} style={{ border: 'none', background: 'none', fontSize: 13, color: '#185FA5', cursor: 'pointer', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: 4 }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 24px 60px' }}>
+      <button onClick={onBack} style={{ border: 'none', background: 'none', fontSize: 13, color: '#185FA5', cursor: 'pointer', padding: '0 0 20px', display: 'flex', alignItems: 'center', gap: 4 }}>
         ← All companies
       </button>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: '50%',
-          background: risk.bg, color: risk.text,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, fontWeight: 700, flexShrink: 0,
-        }}>{co.initials}</div>
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#111' }}>{co.name}</div>
-          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{co.type}</div>
-          <div style={{ marginTop: 4 }}><Stars rating={co.rating} /></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: risk.bg, color: risk.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, flexShrink: 0 }}>
+          {co.initials}
         </div>
-        <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: risk.bg, color: risk.text, flexShrink: 0 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#111' }}>{co.name}</div>
+          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{co.type}</div>
+          <div style={{ marginTop: 6 }}><Stars rating={co.rating} /></div>
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 99, background: risk.bg, color: risk.text, flexShrink: 0 }}>
           {risk.label}
         </span>
       </div>
 
-      {/* Stats grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
           { label: 'Total boots', value: co.total_boots, color: '#791F1F', bg: '#FCEBEB' },
           { label: 'Complaints', value: co.total_complaints, color: '#633806', bg: '#FAEEDA' },
           { label: 'Avg fee', value: `$${co.avg_fee ?? '—'}`, color: '#0C447C', bg: '#E6F1FB' },
         ].map(({ label, value, color, bg }) => (
-          <div key={label} style={{ background: bg, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color }}>{value}</div>
-            <div style={{ fontSize: 11, color }}>{label}</div>
+          <div key={label} style={{ background: bg, borderRadius: 14, padding: '14px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
+            <div style={{ fontSize: 12, color, marginTop: 2 }}>{label}</div>
           </div>
         ))}
       </div>
 
-      {/* Activity bar */}
-      <div style={{ background: '#f9fafb', borderRadius: 12, padding: 14, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Boot volume</span>
-          <span style={{ fontSize: 11, color: '#9ca3af' }}>{co.total_boots} total</span>
-        </div>
-        <RiskBar value={co.total_boots} max={300} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, marginBottom: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Complaint rate</span>
-          <span style={{ fontSize: 11, color: '#9ca3af' }}>{co.total_boots > 0 ? Math.round((co.total_complaints / co.total_boots) * 100) : 0}%</span>
-        </div>
-        <RiskBar value={co.total_complaints} max={co.total_boots || 1} />
-      </div>
-
-      {/* Tags */}
-      {co.tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-          {co.tags.map(tag => (
-            <span key={tag} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 99, background: '#E6F1FB', color: '#0C447C', fontWeight: 500 }}>{tag}</span>
-          ))}
-        </div>
-      )}
-
-      {/* Legal flags */}
-      {co.legal_flags > 0 && (
-        <div style={{ background: '#FCEBEB', borderRadius: 12, padding: 12, marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 18 }}>⚖️</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
+        <div style={{ background: '#f9fafb', borderRadius: 14, padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Activity</div>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>Boot volume</span>
+              <span style={{ fontSize: 12, color: '#9ca3af' }}>{co.total_boots} total</span>
+            </div>
+            <RiskBar value={co.total_boots} max={300} />
+          </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#791F1F', marginBottom: 2 }}>
-              {co.legal_flags} legal flag{co.legal_flags > 1 ? 's' : ''} on record
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>Complaint rate</span>
+              <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                {co.total_boots > 0 ? Math.round((co.total_complaints / co.total_boots) * 100) : 0}%
+              </span>
             </div>
-            <div style={{ fontSize: 12, color: '#991F1F' }}>
-              This company has been flagged for potential violations. Review your rights below before paying.
-            </div>
+            <RiskBar value={co.total_complaints} max={co.total_boots || 1} />
           </div>
         </div>
-      )}
 
-      {/* Contact */}
-      {(co.phone || co.website) && (
-        <div style={{ background: '#f9fafb', borderRadius: 12, padding: 14, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>Contact</div>
+        <div style={{ background: '#f9fafb', borderRadius: 14, padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Info</div>
+          {co.tags.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+              {co.tags.map(tag => (
+                <span key={tag} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99, background: '#E6F1FB', color: '#0C447C', fontWeight: 500 }}>{tag}</span>
+              ))}
+            </div>
+          )}
           {co.phone && (
-            <a href={`tel:${co.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#185FA5', textDecoration: 'none', marginBottom: co.website ? 8 : 0 }}>
+            <a href={`tel:${co.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#185FA5', textDecoration: 'none', marginBottom: 8 }}>
               📞 {co.phone}
             </a>
           )}
@@ -149,181 +124,200 @@ function CompanyDetail({ co, onBack, allReports }: { co: Company; onBack: () => 
               🌐 {co.website.replace(/^https?:\/\//, '')}
             </a>
           )}
+          {!co.phone && !co.website && (
+            <span style={{ fontSize: 13, color: '#9ca3af' }}>No contact info on file</span>
+          )}
+        </div>
+      </div>
+
+      {co.legal_flags > 0 && (
+        <div style={{ background: '#FCEBEB', borderRadius: 14, padding: 14, marginBottom: 16, display: 'flex', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>⚖️</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#791F1F', marginBottom: 2 }}>
+              {co.legal_flags} legal flag{co.legal_flags > 1 ? 's' : ''} on record
+            </div>
+            <div style={{ fontSize: 12, color: '#991F1F' }}>
+              This company has been flagged for potential violations. Review your rights before paying.
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Know your rights */}
-      <div style={{ background: '#FAEEDA', borderRadius: 12, padding: 14, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#633806', marginBottom: 10 }}>📋 Know your rights</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ background: '#FAEEDA', borderRadius: 14, padding: 16, marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#633806', marginBottom: 12 }}>📋 Know your rights</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {disputeSteps.map((step, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#854F0B', background: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
-              <span style={{ fontSize: 12, color: '#633806', lineHeight: 1.5 }}>{step}</span>
+            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#854F0B', background: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+              <span style={{ fontSize: 13, color: '#633806', lineHeight: 1.5 }}>{step}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Recent reports */}
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 12 }}>
-          Recent reports
-          <span style={{ fontSize: 12, fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>
-            ({companyReports.length} in last 72h)
-          </span>
-        </div>
-        {companyReports.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#9ca3af' }}>
-            No recent reports for this company
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {companyReports.map(r => (
-              <div key={r.id} style={{ background: '#f9fafb', borderRadius: 12, padding: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                    background: r.type === 'boot' ? '#FCEBEB' : '#FAEEDA',
-                    color: r.type === 'boot' ? '#791F1F' : '#633806',
-                  }}>
-                    {r.type === 'boot' ? '🔒 Boot' : r.type === 'warning' ? '⚠️ Warning' : '🚗 Truck spotted'}
-                  </span>
-                  <span style={{ fontSize: 11, color: '#9ca3af' }}>{timeAgo(r.created_at)}</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{r.lot_name ?? r.address}</div>
-                {r.lot_name && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{r.address}</div>}
-                {r.fee && <div style={{ fontSize: 12, color: '#374151', marginTop: 4 }}>Fee charged: <strong>{formatFee(r.fee)}</strong></div>}
-                {r.notes && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>"{r.notes}"</div>}
-              </div>
-            ))}
-          </div>
-        )}
+      <div style={{ fontSize: 16, fontWeight: 700, color: '#111', marginBottom: 14 }}>
+        Recent reports
+        <span style={{ fontSize: 13, fontWeight: 400, color: '#9ca3af', marginLeft: 8 }}>({companyReports.length} in last 72h)</span>
       </div>
+
+      {companyReports.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 14, color: '#9ca3af' }}>No recent reports for this company</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+          {companyReports.map(r => (
+            <div key={r.id} style={{ background: '#f9fafb', borderRadius: 14, padding: 14, border: '1px solid #f3f4f6' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: r.type === 'boot' ? '#FCEBEB' : '#FAEEDA', color: r.type === 'boot' ? '#791F1F' : '#633806' }}>
+                  {r.type === 'boot' ? '🔒 Boot' : r.type === 'warning' ? '⚠️ Warning' : '🚗 Truck'}
+                </span>
+                <span style={{ fontSize: 11, color: '#9ca3af' }}>{timeAgo(r.created_at)}</span>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{r.lot_name ?? r.address}</div>
+              {r.lot_name && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{r.address}</div>}
+              {r.fee && <div style={{ fontSize: 12, color: '#374151', marginTop: 6 }}>Fee: <strong>{formatFee(r.fee)}</strong></div>}
+              {r.notes && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6, fontStyle: 'italic' }}>"{r.notes}"</div>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Company list view ────────────────────────────────────────────────────────
+// ── Company list ──────────────────────────────────────────────────────────────
 
 export default function CompaniesView() {
-  const [companies, setCompanies] = useState<Company[]>(SEED)
+  const [companies, setCompanies] = useState<Company[]>([])
   const [allReports, setAllReports] = useState<Report[]>([])
+  const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Company | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetchCompanies().then(data => { if (data.length > 0) setCompanies(data) }).catch(() => {})
-    fetchRecentReports(500).then(setAllReports).catch(() => {})
+    Promise.all([
+      fetchCompanies(),
+      fetchRecentReports(500),
+    ]).then(([cos, reps]) => {
+      setCompanies(cos)
+      setAllReports(reps)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [])
 
-  if (selected) {
-    return <CompanyDetail co={selected} onBack={() => setSelected(null)} allReports={allReports} />
+  const handleSelect = (co: Company) => {
+    setSelected(co)
+    scrollRef.current?.scrollTo({ top: 0 })
+  }
+
+  const handleBack = () => {
+    setSelected(null)
+    scrollRef.current?.scrollTo({ top: 0 })
   }
 
   const filtered = companies.filter(c =>
-    !query || c.name.toLowerCase().includes(query.toLowerCase()) ||
+    !query ||
+    c.name.toLowerCase().includes(query.toLowerCase()) ||
     c.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))
   )
 
   const totalBoots = companies.reduce((s, c) => s + c.total_boots, 0)
-  const avgFee = Math.round(companies.reduce((s, c) => s + (c.avg_fee ?? 0), 0) / companies.length)
+  const avgFee = companies.length ? Math.round(companies.reduce((s, c) => s + (c.avg_fee ?? 0), 0) / companies.length) : 0
   const worstCompany = [...companies].sort((a, b) => b.total_boots - a.total_boots)[0]
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 480, margin: '0 auto', paddingBottom: 32 }}>
-      <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Booting companies</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Tap a company to see recent activity, contact info, and your rights.</p>
+    <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto' }}>
 
-      <input
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        placeholder="Search companies or neighborhoods…"
-        style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: '1px solid #e5e7eb', borderRadius: 10, background: '#f9fafb', outline: 'none', marginBottom: 16, color: '#111' }}
-      />
+      {selected ? (
+        <CompanyDetail co={selected} onBack={handleBack} allReports={allReports} />
+      ) : (
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 24px 60px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Booting companies</h1>
+          <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 20 }}>Tap a company to see recent activity, contact info, and your rights.</p>
 
-      {/* Summary stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
-        <div style={{ background: '#f9fafb', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{companies.length}</div>
-          <div style={{ fontSize: 11, color: '#6b7280' }}>Companies</div>
-        </div>
-        <div style={{ background: '#FCEBEB', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#791F1F' }}>{totalBoots}</div>
-          <div style={{ fontSize: 11, color: '#991F1F' }}>Total boots</div>
-        </div>
-        <div style={{ background: '#FAEEDA', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#633806' }}>${avgFee}</div>
-          <div style={{ fontSize: 11, color: '#854F0B' }}>Avg fee</div>
-        </div>
-      </div>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search companies or neighborhoods…"
+            style={{ width: '100%', padding: '11px 14px', fontSize: 14, border: '1px solid #e5e7eb', borderRadius: 12, background: '#f9fafb', outline: 'none', marginBottom: 20, color: '#111', boxSizing: 'border-box' }}
+          />
 
-      {/* Most active alert */}
-      {worstCompany && (
-        <div style={{ background: '#FCEBEB', borderRadius: 12, padding: '10px 14px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 20 }}>🚨</span>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#791F1F' }}>Most active this week</div>
-            <div style={{ fontSize: 13, color: '#991F1F' }}>{worstCompany.name} — {worstCompany.total_boots} boots reported</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+            <div style={{ background: '#f9fafb', borderRadius: 14, padding: '14px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{companies.length}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>Companies</div>
+            </div>
+            <div style={{ background: '#FCEBEB', borderRadius: 14, padding: '14px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#791F1F' }}>{totalBoots}</div>
+              <div style={{ fontSize: 12, color: '#991F1F', marginTop: 2 }}>Total boots</div>
+            </div>
+            <div style={{ background: '#FAEEDA', borderRadius: 14, padding: '14px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#633806' }}>${avgFee}</div>
+              <div style={{ fontSize: 12, color: '#854F0B', marginTop: 2 }}>Avg fee</div>
+            </div>
           </div>
+
+          {worstCompany && (
+            <div style={{ background: '#FCEBEB', borderRadius: 14, padding: '12px 16px', marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ fontSize: 22 }}>🚨</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#791F1F' }}>Most active this week</div>
+                <div style={{ fontSize: 14, color: '#991F1F' }}>{worstCompany.name} — {worstCompany.total_boots} boots reported</div>
+              </div>
+            </div>
+          )}
+
+          {loading && <div style={{ textAlign: 'center', padding: 48, fontSize: 14, color: '#9ca3af' }}>Loading companies…</div>}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            {filtered.map(co => {
+              const risk = riskColor(co.legal_flags, co.total_boots)
+              const recentCount = allReports.filter(r => r.company_name?.toLowerCase() === co.name.toLowerCase()).length
+              return (
+                <button key={co.id} onClick={() => handleSelect(co)} style={{
+                  textAlign: 'left', padding: 18,
+                  background: '#fff', border: '1px solid #f0f0f0',
+                  borderRadius: 16, cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: risk.bg, color: risk.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                      {co.initials}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{co.name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: risk.bg, color: risk.text }}>{risk.label}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{co.type}</div>
+                    </div>
+                    {recentCount > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: '#FCEBEB', color: '#791F1F', flexShrink: 0 }}>
+                        {recentCount} recent
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+                    {[['Boots', co.total_boots], ['Complaints', co.total_complaints], ['Avg fee', `$${co.avg_fee ?? '—'}`]].map(([label, val]) => (
+                      <div key={label as string} style={{ background: '#f9fafb', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>{val}</div>
+                        <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <RiskBar value={co.total_boots} max={300} />
+                </button>
+              )
+            })}
+          </div>
+
+          {!loading && filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 48, fontSize: 14, color: '#9ca3af' }}>No companies match your search</div>
+          )}
         </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {filtered.map(co => {
-          const risk = riskColor(co.legal_flags, co.total_boots)
-          const recentCount = allReports.filter(r => r.company_name?.toLowerCase() === co.name.toLowerCase()).length
-          return (
-            <button key={co.id} onClick={() => setSelected(co)} style={{
-              width: '100%', textAlign: 'left', padding: 16,
-              background: '#fff', border: '1px solid #f3f4f6', borderRadius: 16,
-              cursor: 'pointer',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  background: risk.bg, color: risk.text,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 700, flexShrink: 0,
-                }}>{co.initials}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{co.name}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: risk.bg, color: risk.text }}>{risk.label}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{co.type}</div>
-                </div>
-                {recentCount > 0 && (
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: '#FCEBEB', color: '#791F1F', flexShrink: 0 }}>
-                    {recentCount} recent
-                  </span>
-                )}
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, color: '#d1d5db' }}>
-                  <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-
-              {/* Stats row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-                {[['Boots', co.total_boots], ['Complaints', co.total_complaints], ['Avg fee', `$${co.avg_fee ?? '—'}`]].map(([label, val]) => (
-                  <div key={label as string} style={{ background: '#f9fafb', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>{val}</div>
-                    <div style={{ fontSize: 10, color: '#6b7280' }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Boot volume bar */}
-              <div style={{ marginTop: 10 }}>
-                <RiskBar value={co.total_boots} max={300} />
-              </div>
-            </button>
-          )
-        })}
-      </div>
-
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, fontSize: 14, color: '#9ca3af' }}>No companies match your search</div>
       )}
     </div>
   )
