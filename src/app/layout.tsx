@@ -5,21 +5,34 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'BootWatch ATL',
-  description: 'Real-time crowdsourced boot & parking enforcement map for Atlanta',
+  title: 'ATL BootWatch',
+  description: 'See where cars are being booted in Atlanta. Crowdsourced, real-time boot reports, lot risk scores, and enforcement company profiles.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'BootWatch ATL',
-  },
-  formatDetection: {
-    telephone: false,
+    title: 'ATL BootWatch',
   },
   openGraph: {
-    title: 'BootWatch ATL',
-    description: 'See where cars are being booted in Atlanta. Crowdsourced, real-time.',
+    title: 'ATL BootWatch',
+    description: 'See where cars are being booted in Atlanta. Check any lot before you park.',
+    url: 'https://www.atlboot.watch', // 👈 replace with your real URL
+    siteName: 'ATL BootWatch',
+    images: [
+      {
+        url: 'https://your-actual-url.vercel.app/og-image.png', // 👈 replace
+        width: 1200,
+        height: 630,
+        alt: 'ATL BootWatch — Atlanta boot map',
+      },
+    ],
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ATL BootWatch',
+    description: 'See where cars are being booted in Atlanta. Check any lot before you park.',
+    images: ['https://icon-512.png'], // 👈 replace
   },
 }
 
@@ -39,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 <link rel="icon" href="/icons/icon-32.png" sizes="32x32" />
 <link rel="apple-touch-icon" href="/icons/icon-180.png" />        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="BootWatch ATL" />
+        <meta name="apple-mobile-web-app-title" content="ATL BootWatch" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className} style={{ height: '100%', margin: 0 }}>

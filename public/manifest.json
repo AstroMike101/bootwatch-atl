@@ -1,5 +1,5 @@
 {
-  "name": "BootWatch ATL",
+  "name": "ATL BootWatch",
   "short_name": "BootWatch",
   "description": "Real-time crowdsourced boot & parking enforcement map for Atlanta",
   "start_url": "/",

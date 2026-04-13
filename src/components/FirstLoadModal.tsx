@@ -56,7 +56,7 @@ export default function FirstLoadModal() {
             <div style={{ width: 16, height: 16, borderRadius: '50%', border: '3px solid #fff' }} />
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>BootWatch ATL</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>ATL BootWatch</div>
             <div style={{ fontSize: 13, color: '#6b7280' }}>Crowdsourced boot protection for Atlanta</div>
           </div>
         </div>
