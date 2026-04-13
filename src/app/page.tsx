@@ -25,7 +25,7 @@ export default function Home() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E24B4A' }} />
-          <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.3px' }}>BootWatch ATL</span>
+          <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.3px' }}>ATL BootWatch</span>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           <AboutSheet />

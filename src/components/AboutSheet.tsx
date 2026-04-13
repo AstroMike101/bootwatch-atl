@@ -65,7 +65,7 @@ export default function AboutSheet() {
                 <div style={{ width: 16, height: 16, borderRadius: '50%', border: '3px solid #fff' }} />
               </div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>BootWatch ATL</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>ATL BootWatch</div>
               </div>
             </div>
 
