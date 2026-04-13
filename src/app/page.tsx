@@ -5,9 +5,10 @@ import MapView from '@/components/MapView'
 import CompaniesView from '@/components/CompaniesView'
 import ReportView from '@/components/ReportView'
 import RecentReportsView from '@/components/RecentReportsView'
+import SafetySearchView from '@/components/SafetySearchView'
 import BottomNav from '@/components/ui/BottomNav'
 
-export type Tab = 'map' | 'reports' | 'companies' | 'report'
+export type Tab = 'map' | 'search' | 'reports' | 'companies' | 'report'
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('map')
@@ -40,22 +41,18 @@ export default function Home() {
 
       {/* Views */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {/* Map — always mounted so it doesn't reload on tab switch */}
         <div style={{ position: 'absolute', inset: 0, display: tab === 'map' ? 'block' : 'none' }}>
           <MapView />
         </div>
-
-        {/* Reports — needs full height so its internal scroll works */}
+        <div style={{ position: 'absolute', inset: 0, display: tab === 'search' ? 'block' : 'none' }}>
+          <SafetySearchView />
+        </div>
         <div style={{ position: 'absolute', inset: 0, display: tab === 'reports' ? 'block' : 'none' }}>
           <RecentReportsView />
         </div>
-
-        {/* Companies */}
         <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: tab === 'companies' ? 'block' : 'none' }}>
           <CompaniesView />
         </div>
-
-        {/* Report form */}
         <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: tab === 'report' ? 'block' : 'none' }}>
           <ReportView onDone={() => setTab('map')} onCancel={() => setTab('map')} />
         </div>

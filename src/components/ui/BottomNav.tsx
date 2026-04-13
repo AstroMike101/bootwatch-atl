@@ -10,6 +10,7 @@ interface Props {
 export default function BottomNav({ current, onChange }: Props) {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'map', label: 'Map' },
+    { id: 'search', label: 'Search' },
     { id: 'reports', label: 'Reports' },
     { id: 'companies', label: 'Companies' },
     { id: 'report', label: 'Report' },
@@ -35,7 +36,7 @@ export default function BottomNav({ current, onChange }: Props) {
               transition: 'color 0.15s',
             }}
           >
-            {/* Map icon */}
+            {/* Map */}
             {t.id === 'map' && (
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                 <path d="M11 2C8.24 2 6 4.24 6 7c0 4.5 5 13 5 13s5-8.5 5-13c0-2.76-2.24-5-5-5z"
@@ -44,7 +45,16 @@ export default function BottomNav({ current, onChange }: Props) {
               </svg>
             )}
 
-            {/* Reports icon — list/feed */}
+            {/* Search */}
+            {t.id === 'search' && (
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="9.5" cy="9.5" r="6.5" stroke="currentColor" strokeWidth="1.6" fill={active ? '#E24B4A' : 'none'} />
+                <line x1="14.5" y1="14.5" x2="20" y2="20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                {active && <circle cx="9.5" cy="9.5" r="3" fill="#fff" />}
+              </svg>
+            )}
+
+            {/* Reports */}
             {t.id === 'reports' && (
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                 <rect x="3" y="3" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" fill={active ? '#E24B4A' : 'none'} />
@@ -54,7 +64,7 @@ export default function BottomNav({ current, onChange }: Props) {
               </svg>
             )}
 
-            {/* Companies icon */}
+            {/* Companies */}
             {t.id === 'companies' && (
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                 <rect x="3" y="7" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.6" fill={active ? '#E24B4A' : 'none'} />
@@ -63,7 +73,7 @@ export default function BottomNav({ current, onChange }: Props) {
               </svg>
             )}
 
-            {/* Report icon */}
+            {/* Report */}
             {t.id === 'report' && (
               <div style={{ position: 'relative' }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
