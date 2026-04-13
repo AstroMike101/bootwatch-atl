@@ -9,37 +9,42 @@ import {
 import { mapsLoader } from '@/lib/maps'
 import type { Lot, Report } from '@/types'
 
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    setIsDesktop(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isDesktop
+}
+
 // ── Risk meter ────────────────────────────────────────────────────────────────
 
 function RiskMeter({ score }: { score: number }) {
   const { label, color, bg, emoji } = riskLabel(score)
   return (
-    <div style={{ background: bg, borderRadius: 16, padding: '20px 24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <span style={{ fontSize: 32 }}>{emoji}</span>
+    <div style={{ background: bg, borderRadius: 14, padding: '16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <span style={{ fontSize: 28 }}>{emoji}</span>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color }}>{label}</div>
-          <div style={{ fontSize: 13, color, opacity: 0.8 }}>Risk score: {score}/100</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color }}>{label}</div>
+          <div style={{ fontSize: 12, color, opacity: 0.8 }}>Risk score: {score}/100</div>
         </div>
       </div>
-      {/* Bar */}
-      <div style={{ height: 10, background: 'rgba(0,0,0,0.08)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{
-          height: '100%',
-          width: `${score}%`,
-          background: color,
-          borderRadius: 99,
-          transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
-        }} />
+      <div style={{ height: 8, background: 'rgba(0,0,0,0.08)', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${score}%`, background: color, borderRadius: 99, transition: 'width 0.6s ease' }} />
       </div>
     </div>
   )
 }
 
-// ── Lot result card ───────────────────────────────────────────────────────────
+// ── Lot card (list item) ──────────────────────────────────────────────────────
 
 function LotCard({ lot, onClick, selected }: { lot: Lot; onClick: () => void; selected: boolean }) {
-  const { label, color, bg, emoji } = riskLabel(lot.risk_score)
+  const { color, bg, emoji } = riskLabel(lot.risk_score)
   return (
     <button onClick={onClick} style={{
       width: '100%', textAlign: 'left', padding: 16,
@@ -51,11 +56,11 @@ function LotCard({ lot, onClick, selected }: { lot: Lot; onClick: () => void; se
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 2 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>
             {lot.name ?? lot.address}
           </div>
-          {lot.name && <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>{lot.address}</div>}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {lot.name && <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>{lot.address}</div>}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {lot.company_name && (
               <span style={{ fontSize: 11, color: '#6b7280', background: '#f9fafb', padding: '2px 8px', borderRadius: 99, border: '1px solid #f0f0f0' }}>
                 {lot.company_name}
@@ -72,26 +77,26 @@ function LotCard({ lot, onClick, selected }: { lot: Lot; onClick: () => void; se
           </div>
         </div>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
-          <div style={{ fontSize: 22 }}>{emoji}</div>
-          <div style={{ fontSize: 10, fontWeight: 700, color, marginTop: 2 }}>{label}</div>
+          <div style={{ fontSize: 20 }}>{emoji}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color, marginTop: 2, whiteSpace: 'nowrap' }}>{riskLabel(lot.risk_score).label}</div>
         </div>
       </div>
     </button>
   )
 }
 
-// ── Lot detail ────────────────────────────────────────────────────────────────
+// ── Lot detail content (shared between panel and sheet) ───────────────────────
 
-function LotDetail({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onClose: () => void }) {
-  const { label, color, bg, emoji } = riskLabel(lot.risk_score)
+function LotDetailContent({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onClose: () => void }) {
+  const { color } = riskLabel(lot.risk_score)
   return (
-    <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #f0f0f0', boxShadow: '0 8px 32px rgba(0,0,0,0.1)', padding: 24, position: 'sticky', top: 24 }}>
+    <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 2 }}>{lot.name ?? lot.address}</div>
           {lot.name && <div style={{ fontSize: 13, color: '#6b7280' }}>{lot.address}</div>}
         </div>
-        <button onClick={onClose} style={{ border: 'none', background: 'none', color: '#9ca3af', fontSize: 22, cursor: 'pointer', flexShrink: 0 }}>×</button>
+        <button onClick={onClose} style={{ border: 'none', background: 'none', color: '#9ca3af', fontSize: 22, cursor: 'pointer', flexShrink: 0, lineHeight: 1, padding: 0 }}>×</button>
       </div>
 
       <RiskMeter score={lot.risk_score} />
@@ -110,7 +115,7 @@ function LotDetail({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onC
       </div>
 
       {lot.company_name && (
-        <div style={{ background: '#f9fafb', borderRadius: 12, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#374151' }}>
+        <div style={{ background: '#f9fafb', borderRadius: 12, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#374151' }}>
           Enforced by <strong>{lot.company_name}</strong>
         </div>
       )}
@@ -121,9 +126,8 @@ function LotDetail({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onC
         </div>
       )}
 
-      {/* Recent reports */}
       {reports.length > 0 && (
-        <div>
+        <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 10 }}>Recent reports</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {reports.slice(0, 5).map(r => (
@@ -142,10 +146,62 @@ function LotDetail({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onC
         </div>
       )}
 
-      <div style={{ background: '#FAEEDA', borderRadius: 12, padding: '10px 14px', marginTop: 14, fontSize: 12, color: '#633806', lineHeight: 1.5 }}>
+      <div style={{ background: '#FAEEDA', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#633806', lineHeight: 1.5 }}>
         <strong>Tip:</strong> If you park here, take a photo of all signage before leaving your car.
       </div>
+    </>
+  )
+}
+
+// ── Desktop side panel ────────────────────────────────────────────────────────
+
+function LotDetailPanel({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onClose: () => void }) {
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 20,
+      border: '1px solid #f0f0f0',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+      padding: 24,
+      position: 'sticky', top: 24,
+      maxHeight: 'calc(100vh - 120px)',
+      overflowY: 'auto',
+    }}>
+      <LotDetailContent lot={lot} reports={reports} onClose={onClose} />
     </div>
+  )
+}
+
+// ── Mobile bottom sheet ───────────────────────────────────────────────────────
+
+function LotDetailSheet({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onClose: () => void }) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(1px)',
+          animation: 'fadeIn 0.2s ease',
+        }}
+      />
+      {/* Sheet */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
+        background: '#fff',
+        borderRadius: '24px 24px 0 0',
+        padding: '20px 20px 48px',
+        maxHeight: '85vh',
+        overflowY: 'auto',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+        animation: 'slideUp 0.3s cubic-bezier(0.4,0,0.2,1)',
+      }}>
+        {/* Handle */}
+        <div style={{ width: 40, height: 4, borderRadius: 99, background: '#e5e7eb', margin: '0 auto 20px' }} />
+        <LotDetailContent lot={lot} reports={reports} onClose={onClose} />
+      </div>
+    </>
   )
 }
 
@@ -154,14 +210,12 @@ function LotDetail({ lot, reports, onClose }: { lot: Lot; reports: Report[]; onC
 function NeighborhoodLeaderboard({ lots }: { lots: Lot[] }) {
   const stats = computeNeighborhoodStats(lots)
   if (stats.length === 0) return null
-
   const maxBoots = Math.max(...stats.map(s => s.boots), 1)
 
   return (
     <div>
       <div style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 4 }}>Neighborhood risk</div>
       <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>Boot activity by area in the last 72 hours</div>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {stats.map((s, i) => {
           const { color, bg, emoji } = riskLabel(s.riskScore)
@@ -177,9 +231,8 @@ function NeighborhoodLeaderboard({ lots }: { lots: Lot[] }) {
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{s.name}</span>
                     <span style={{ fontSize: 13 }}>{emoji}</span>
                   </div>
-                  {/* Bar */}
                   <div style={{ height: 6, background: '#f3f4f6', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99, transition: 'width 0.5s ease' }} />
+                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99 }} />
                   </div>
                 </div>
               </div>
@@ -225,14 +278,13 @@ export default function SafetySearchView() {
   const inputRef = useRef<HTMLInputElement>(null)
   const autocomplete = useRef<google.maps.places.Autocomplete | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isDesktop = useIsDesktop()
 
-  // Load high risk lots + all lots for neighborhood stats on mount
   useEffect(() => {
     fetchHighRiskLots(8).then(setHighRisk).catch(() => {})
     fetchLots().then(setAllLots).catch(() => {})
   }, [])
 
-  // Set up Google Places autocomplete on the input
   useEffect(() => {
     mapsLoader.load().then(() => {
       if (!inputRef.current) return
@@ -240,8 +292,8 @@ export default function SafetySearchView() {
         componentRestrictions: { country: 'us' },
         fields: ['geometry', 'formatted_address', 'name'],
         bounds: new google.maps.LatLngBounds(
-          { lat: 33.65, lng: -84.55 }, // SW Atlanta
-          { lat: 33.95, lng: -84.25 }  // NE Atlanta
+          { lat: 33.65, lng: -84.55 },
+          { lat: 33.95, lng: -84.25 }
         ),
       })
       autocomplete.current.addListener('place_changed', async () => {
@@ -251,15 +303,14 @@ export default function SafetySearchView() {
         const lng = place.geometry.location.lng()
         setSearching(true)
         setHasSearched(true)
+        setSelectedLot(null)
         const nearby = await fetchLotsNear(lat, lng)
         setResults(nearby)
         setSearching(false)
-        setSelectedLot(null)
       })
     })
   }, [])
 
-  // Text-based search with debounce
   const handleQueryChange = (val: string) => {
     setQuery(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -267,6 +318,7 @@ export default function SafetySearchView() {
     debounceRef.current = setTimeout(async () => {
       setSearching(true)
       setHasSearched(true)
+      setSelectedLot(null)
       const lots = await searchLots(val.trim())
       setResults(lots)
       setSearching(false)
@@ -280,21 +332,17 @@ export default function SafetySearchView() {
     setLotReports(reps)
   }
 
-  const showPanel = selectedLot !== null
-  const showResults = hasSearched
-  const showHighRisk = !hasSearched && highRisk.length > 0
+  const closeDetail = () => { setSelectedLot(null); setLotReports([]) }
+  const panelOpen = isDesktop && selectedLot !== null
 
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px 60px' }}>
 
-        {/* Header */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111', marginBottom: 6 }}>Is it safe to park here?</h1>
-          <p style={{ fontSize: 15, color: '#6b7280' }}>Search any Atlanta address or lot to see its boot history and risk score.</p>
-        </div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111', marginBottom: 6 }}>Is it safe to park here?</h1>
+        <p style={{ fontSize: 15, color: '#6b7280', marginBottom: 28 }}>Search any Atlanta address or lot to see its boot history and risk score.</p>
 
-        {/* Search box */}
+        {/* Search */}
         <div style={{ position: 'relative', marginBottom: 32 }}>
           <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 18, pointerEvents: 'none' }}>🔍</div>
           <input
@@ -317,12 +365,15 @@ export default function SafetySearchView() {
           )}
         </div>
 
-        {/* Main content area */}
-        <div style={{ display: 'grid', gridTemplateColumns: showPanel ? 'minmax(0,1fr) 380px' : '1fr', gap: 24, alignItems: 'start' }}>
+        {/* Grid: results + desktop panel */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: panelOpen ? 'minmax(0,1fr) 380px' : '1fr',
+          gap: 24, alignItems: 'start',
+        }}>
           <div>
-
             {/* Search results */}
-            {showResults && (
+            {hasSearched && (
               <div style={{ marginBottom: 40 }}>
                 {results.length === 0 && !searching && (
                   <div style={{ background: '#EAF3DE', borderRadius: 16, padding: '20px 24px', display: 'flex', gap: 14, alignItems: 'center' }}>
@@ -340,12 +391,7 @@ export default function SafetySearchView() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {results.map(lot => (
-                        <LotCard
-                          key={lot.id}
-                          lot={lot}
-                          selected={selectedLot?.id === lot.id}
-                          onClick={() => handleSelectLot(lot)}
-                        />
+                        <LotCard key={lot.id} lot={lot} selected={selectedLot?.id === lot.id} onClick={() => handleSelectLot(lot)} />
                       ))}
                     </div>
                   </div>
@@ -353,40 +399,39 @@ export default function SafetySearchView() {
               </div>
             )}
 
-            {/* High risk lots when no search */}
-            {showHighRisk && (
+            {/* High risk lots default state */}
+            {!hasSearched && highRisk.length > 0 && (
               <div style={{ marginBottom: 40 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 4 }}>⚠️ High risk lots right now</div>
                 <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>These lots have the most recent boot activity</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {highRisk.map(lot => (
-                    <LotCard
-                      key={lot.id}
-                      lot={lot}
-                      selected={selectedLot?.id === lot.id}
-                      onClick={() => handleSelectLot(lot)}
-                    />
+                    <LotCard key={lot.id} lot={lot} selected={selectedLot?.id === lot.id} onClick={() => handleSelectLot(lot)} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Neighborhood leaderboard — always show */}
             <NeighborhoodLeaderboard lots={allLots} />
           </div>
 
-          {/* Detail panel */}
-          {showPanel && selectedLot && (
-            <LotDetail
-              lot={selectedLot}
-              reports={lotReports}
-              onClose={() => { setSelectedLot(null); setLotReports([]) }}
-            />
+          {/* Desktop side panel */}
+          {panelOpen && selectedLot && (
+            <LotDetailPanel lot={selectedLot} reports={lotReports} onClose={closeDetail} />
           )}
         </div>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* Mobile bottom sheet */}
+      {!isDesktop && selectedLot && (
+        <LotDetailSheet lot={selectedLot} reports={lotReports} onClose={closeDetail} />
+      )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+      `}</style>
     </div>
   )
 }
